@@ -1,14 +1,36 @@
 # -*- coding: utf-8 -*-
-
-# Define here the models for your scraped items
-#
-# See documentation in:
-# http://doc.scrapy.org/en/latest/topics/items.html
-
+import re
 import scrapy
+from scrapy.loader import ItemLoader
+from scrapy.loader.processors import TakeFirst, MapCompose
 
 
-class ApartmentsItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class ApartmentGuideFloor(scrapy.Item):
+    apartment_name = scrapy.Field()
+    floor_name = scrapy.Field()
+    address = scrapy.Field()
+    state = scrapy.Field()
+    countie = scrapy.Field()
+    phone = scrapy.Field()
+    amenities = scrapy.Field()
+    is_studio = scrapy.Field()
+    beds = scrapy.Field()
+    baths = scrapy.Field()
+    square_feets = scrapy.Field()
+    price = scrapy.Field()
+
+
+def take_number(x):
+    match = re.search('\d+\.*\d*', x)
+    return match.group() if match else None
+
+
+class ApartmentGuideFloorItemLoader(ItemLoader):
+    default_output_processor = TakeFirst()
+    default_item_class = ApartmentGuideFloor
+
+    baths_in = MapCompose(take_number)
+    beds_in = MapCompose(take_number)
+    square_feets_in = MapCompose(take_number)
+    is_studio_in = MapCompose(lambda x: 'yes' if 'Studio' in x else 'no')
+    price_in = MapCompose(lambda x: '-'.join(re.findall('\$\d+\.*\d*', x)))
