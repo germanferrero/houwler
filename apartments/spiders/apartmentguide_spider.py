@@ -25,7 +25,7 @@ class ApartmentguideSpider(Spider):
         links = self.browselinks_extractor.extract_links(response)
         for link in links:
             meta = {'state_name': re.search(
-                "(.+) Apartments", link.text).group(1)}
+                "(?P<state_name>.+) Apartments", link.text).group('state_name')}
             yield Request(url=link.url, meta=meta, callback=self.parse_state)
 
     def parse_state(self, response):
@@ -34,7 +34,7 @@ class ApartmentguideSpider(Spider):
         for link in links:
             meta = response.meta
             meta['city_name'] = re.search(
-                "(.+) Apartments", link.text).group(1)
+                "(?P<city_name>.+) Apartments", link.text).group('city_name')
             params = urlencode({'sort': 'distance'})
             yield Request(url=link.url + '?{}'.format(params), meta=meta, callback=self.parse_city)
 

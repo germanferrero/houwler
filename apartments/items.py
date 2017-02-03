@@ -2,7 +2,7 @@
 import re
 import scrapy
 from scrapy.loader import ItemLoader
-from scrapy.loader.processors import TakeFirst, MapCompose
+from scrapy.loader.processors import TakeFirst, MapCompose, Join
 
 
 class ApartmentGuideFloor(scrapy.Item):
@@ -10,7 +10,7 @@ class ApartmentGuideFloor(scrapy.Item):
     floor_name = scrapy.Field()
     address = scrapy.Field()
     state = scrapy.Field()
-    countie = scrapy.Field()
+    city = scrapy.Field()
     phone = scrapy.Field()
     amenities = scrapy.Field()
     is_studio = scrapy.Field()
@@ -34,3 +34,4 @@ class ApartmentGuideFloorItemLoader(ItemLoader):
     square_feets_in = MapCompose(take_number)
     is_studio_in = MapCompose(lambda x: 'yes' if 'Studio' in x else 'no')
     price_in = MapCompose(lambda x: '-'.join(re.findall('\$\d+\.*\d*', x)))
+    amenities_out = Join('-')
