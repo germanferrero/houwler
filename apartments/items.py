@@ -5,7 +5,7 @@ from scrapy.loader import ItemLoader
 from scrapy.loader.processors import TakeFirst, MapCompose, Join
 
 
-class ApartmentGuideFloor(scrapy.Item):
+class ApartmentGuideApartment(scrapy.Item):
     apartment_name = scrapy.Field()
     floor_name = scrapy.Field()
     address = scrapy.Field()
@@ -25,9 +25,9 @@ def take_number(x):
     return match.group() if match else None
 
 
-class ApartmentGuideFloorItemLoader(ItemLoader):
+class ApartmentGuideItemLoader(ItemLoader):
     default_output_processor = TakeFirst()
-    default_item_class = ApartmentGuideFloor
+    default_item_class = ApartmentGuideApartment
 
     baths_in = MapCompose(take_number)
     beds_in = MapCompose(take_number)

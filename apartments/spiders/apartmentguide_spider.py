@@ -1,22 +1,27 @@
 import re
+
+from apartments.items import ApartmentGuideItemLoader
+from scrapy.http import Request
+from scrapy.linkextractors import LinkExtractor
+from scrapy.spiders import Spider
 from urllib import urlencode
 from urlparse import urlparse
-from scrapy.spiders import Spider
-# from scrapy.spiders import CrawlSpider, Rule
-from scrapy.linkextractors import LinkExtractor
-from scrapy.http import Request
-from apartments.items import ApartmentGuideFloorItemLoader
 
 
 class ApartmentguideSpider(Spider):
-    """This spider crawls apartments information from aparmentguide.com"""
+    """
+    This spider crawls apartments information from aparmentguide.com
+    Aparment are extracted for each state in USA.
+    """
     name = "apartmentguide"
     allowed_domains = ["apartmentguide.com"]
     # start_url contains links to all states.
     start_urls = ["http://www.apartmentguide.com/apartments"]
 
+    # Link extractor to browse location links.
     browselinks_extractor = LinkExtractor(
         restrict_xpaths="//div[contains(@class,'browse_links')]")
+    # Link extractor for apartments links.
     apartmentlinks_extractor = LinkExtractor(
         restrict_xpaths="id('resultWrapper')//a[contains(@class,'listing_title_links')]")
 
@@ -39,18 +44,31 @@ class ApartmentguideSpider(Spider):
             yield Request(url=link.url + '?{}'.format(params), meta=meta, callback=self.parse_city)
 
     def parse_city(self, response):
-        """ Follow links to all apartments"""
-        links = self.apartmentlinks_extractor.extract_links(response)
-        city_links = [l for l in links if re.search(urlparse(response.url).path, l.url)]
-        for link in city_links:
-            yield Request(url=link.url, meta=response.meta, callback=self.parse_apartment)
+        """
+        Follow links to all apartments
 
-        if len(city_links) == len(links):
-            next_page = response.xpath("//a[contains(@class,'pagination-next')]/@href").extract_first()
+        Since they may appear others cities' apartments in the results, apartments
+        are sorted by distance and we crawl following pages as long as all the results
+        belong to the sought city.
+        """
+        links = self.apartmentlinks_extractor.extract_links(response)
+        city_links = [l for l in links if re.search(
+            urlparse(response.url).path, l.url)]
+        for link in city_links:
+            yield Request(url=link.url, meta=response.meta, callback=self.parse_apartment_building)
+
+        if len(city_links) == len(links):  # All links on current page belong to this city.
+            next_page = response.xpath(
+                "//a[contains(@class,'pagination-next')]/@href").extract_first()
             if next_page:
                 yield Request(url=response.urljoin(next_page), meta=response.meta, callback=self.parse_city)
 
-    def parse_apartment(self, response):
+    def parse_apartment_building(self, response):
+        """
+        Extract apartments offers of a particular apartment building.
+
+        It generate an item for each apartment type.
+        """
         apartment_name = response.xpath("//h1[contains(@class," +
                                         "'gallery-info-description-title')]/text()").extract_first()
         address = response.xpath("//li[contains(@class," +
@@ -64,7 +82,7 @@ class ApartmentguideSpider(Spider):
         state = response.meta.get('state_name')
         city = response.meta.get('city_name')
         for floor in floors:
-            loader = ApartmentGuideFloorItemLoader(selector=floor)
+            loader = ApartmentGuideItemLoader(selector=floor)
             loader.add_value('apartment_name', apartment_name)
             loader.add_value('address', address)
             loader.add_value('state', state)
